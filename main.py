@@ -27,33 +27,77 @@ def score(
     }
 
 
+class Transfer:
+    """Transfer learning for a given model."""
+
+    def __init__(self, model):
+        """
+        :param model: The model to transfer learning with.
+        """
+        self.model = model
+
+    def fit(self, X, Y):
+        self.model.fit(X.T, Y.T)
+        return self
+
+    def transform(self, X, Y):
+        X_fit, Y_fit = self.model.transform(X.T, Y.T)
+
+        X_fit = X @ X_fit
+        Y_fit = Y @ Y_fit
+
+        return X_fit, Y_fit
+
+    def fit_transform(self, X, Y):
+        return self.fit(X, Y).transform(X, Y)
+
+
+def run_transfer(model, X_data, Y_data, X_classes, Y_classes) -> dict[str, float]:
+    """
+    Driver function to run various transfer models
+    :param model: The model to transfer learning with.
+    :param X_data: The training data for the source; shape (m, n)
+    :param Y_data: The training data for the target; shape (k, n)
+    :param X_classes: The true values for the source; shape (m, 1)
+    :param Y_classes: The true values for the source; shape (k, 1)
+
+    :return Various scores of the model in a dictionary.
+    """
+    scaler = StandardScaler()
+    X_data = th.tensor(scaler.fit_transform(X_data), dtype=th.float32)
+    Y_data = th.tensor(scaler.transform(Y_data), dtype=th.float32)
+
+    transfer = Transfer(model)
+    X_fit, Y_fit = transfer.fit_transform(X_data, Y_data)
+
+    logi = LogisticRegression()
+    logi.fit(X_fit, X_classes)
+
+    Y_classes_pred = logi.predict(Y_fit)
+    return score(y_true=Y_classes, y_pred=Y_classes_pred)
+
+
 def main():
+    # np.random.seed(0)
+
     loader = DataLoader("AEEEM")
     [(name_X, (X_data, X_classes)), (name_Y, (Y_data, Y_classes))] = (
         loader.get_random_datasets()
     )
 
     dpls = DeepPLS(
-        lv_dimensions=[20, 7],
+        lv_dimensions=[30, 5],
         pls_solver="iter",
         use_nonlinear_mapping=False,
         mapping_dimensions=[],
         nys_gamma_values=[],
         stack_previous_lv1=False,
     )
-
-    dpls.fit(X_data.T, Y_data.T)
-    X_fit, Y_fit = dpls.transform(X_data.T, Y_data.T)
-
-    X_fit = X_data @ X_fit
-    Y_fit = Y_data @ Y_fit
-
-    logi = LogisticRegression()
-    logi.fit(X_fit, X_classes)
-    Y_classes_pred = logi.predict(Y_fit)
+    pls = PLS(35, solver="iter")
 
     print(f"X = {name_X}, Y = {name_Y}")
-    print(score(y_true=Y_classes, y_pred=Y_classes_pred))
+    print(f"DPLS = {run_transfer(dpls, X_data, Y_data, X_classes, Y_classes)}")
+    print(f"PLS = {run_transfer(pls, X_data, Y_data, X_classes, Y_classes)}")
 
 
 if __name__ == "__main__":
