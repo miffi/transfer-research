@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "transfer-research"
+version = "0.1.0"
+description = "Research on transfer learning with deep partial least squares."
+authors = ["Mashfi Ishtiaque Ahmad <miffi@decadent.rest>"]
+license = "MIT"
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pandas = "^2.2.2"
+torch = "^2.3.0"
+numpy = "^1.26.4"
+scikit-learn = "^1.5.0"
+openpyxl = "^3.1.2"
+scipy = "^1.13.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
