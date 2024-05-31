@@ -20,9 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from sklearn.kernel_approximation import Nystroem
 import torch as th
-from utils import _get_first_singular_vectors_power_method, _get_first_singular_vectors_svd, _svd_flip_1d
+from sklearn.kernel_approximation import Nystroem
+
+from dpls.utils import (_get_first_singular_vectors_power_method,
+                        _get_first_singular_vectors_svd, _svd_flip_1d)
 
 
 class PLS(object):
@@ -77,24 +79,26 @@ class PLS(object):
         for k in range(n_components):
             Yk_mask = th.all(th.abs(Yk) < 10 * Y_eps, dim=0)
             Yk[:, Yk_mask] = 0.0
-            if self.solver == 'iter':
-                x_weights, y_weights, n_iter_ = _get_first_singular_vectors_power_method(
-                    Xk, Yk, max_iter=self.max_iter, tol=self.tol
+            if self.solver == "iter":
+                x_weights, y_weights, n_iter_ = (
+                    _get_first_singular_vectors_power_method(
+                        Xk, Yk, max_iter=self.max_iter, tol=self.tol
+                    )
                 )
                 self.n_iter_.append(n_iter_)
-            elif self.solver == 'svd':
+            elif self.solver == "svd":
                 x_weights, y_weights = _get_first_singular_vectors_svd(Xk, Yk)
             else:
-                raise NameError('PLS solver not supported')
+                raise NameError("PLS solver not supported")
 
             _svd_flip_1d(x_weights, y_weights)
             x_scores = th.matmul(Xk, x_weights)
             y_ss = th.matmul(y_weights, y_weights)
             y_scores = th.matmul(Yk, y_weights) / y_ss
             x_loadings = th.matmul(x_scores, Xk) / th.matmul(x_scores, x_scores)
-            Xk -= th.einsum('i,j->ij', x_scores, x_loadings)
+            Xk -= th.einsum("i,j->ij", x_scores, x_loadings)
             y_loadings = th.matmul(x_scores, Yk) / th.matmul(x_scores, x_scores)
-            Yk -= th.einsum('i,j->ij', x_scores, y_loadings)
+            Yk -= th.einsum("i,j->ij", x_scores, y_loadings)
 
             self.x_weights_[:, k] = x_weights
             self.y_weights_[:, k] = y_weights
@@ -106,10 +110,11 @@ class PLS(object):
             self.y_scores_ = self._y_scores
 
         self.x_rotations_ = th.matmul(
-            self.x_weights_,
-            th.pinverse(th.matmul(self.x_loadings_.T, self.x_weights_)))
+            self.x_weights_, th.pinverse(th.matmul(self.x_loadings_.T, self.x_weights_))
+        )
         self.y_rotations_ = th.matmul(
-            self.y_weights_, th.pinverse(th.matmul(self.y_loadings_.T, self.y_weights_)))
+            self.y_weights_, th.pinverse(th.matmul(self.y_loadings_.T, self.y_weights_))
+        )
 
         self.coef_ = th.matmul(self.x_rotations_, self.y_loadings_.T)
         return self
@@ -124,10 +129,15 @@ class PLS(object):
         Y_pred = th.matmul(X, self.coef_)
         return Y_pred + self._y_mean
 
-    def transform(self, X):
+    def transform(self, X, y=None):
         X = X.clone()
         X -= self._x_mean
         x_scores = th.matmul(X, self.x_rotations_)
+        if y is not None:
+            y = y.clone()
+            y -= self._y_mean
+            y_scores = th.matmul(y, self.y_rotations_)
+            return x_scores, y_scores
         return x_scores
 
 
@@ -157,14 +167,13 @@ class DeepPLS(object):
     """
 
     def __init__(
-            self,
-            lv_dimensions: list,
-            pls_solver: str,
-            use_nonlinear_mapping: bool,
-            mapping_dimensions: list,
-            nys_gamma_values: list,
-            stack_previous_lv1: bool
-
+        self,
+        lv_dimensions: list,
+        pls_solver: str,
+        use_nonlinear_mapping: bool,
+        mapping_dimensions: list,
+        nys_gamma_values: list,
+        stack_previous_lv1: bool,
     ):
         self.lv_dimensions = lv_dimensions
         self.n_layers = len(self.lv_dimensions)
@@ -184,10 +193,12 @@ class DeepPLS(object):
     def _fit(self, X, Y):
         for layer_index in range(self.n_layers):
             if self.use_nonlinear_mapping:
-                nys_func = Nystroem(kernel='rbf',
-                                    gamma=self.nys_gamma_values[layer_index],
-                                    n_components=self.mapping_dimensions[layer_index],
-                                    n_jobs=-1)
+                nys_func = Nystroem(
+                    kernel="rbf",
+                    gamma=self.nys_gamma_values[layer_index],
+                    n_components=self.mapping_dimensions[layer_index],
+                    n_jobs=-1,
+                )
                 X_backup = X.clone()
                 X = nys_func.fit_transform(X)
                 self.mapping_funcs.append(nys_func)
@@ -196,7 +207,9 @@ class DeepPLS(object):
                     lv1_previous_layer = X_backup[:, [0]]
                     X = th.hstack((lv1_previous_layer, X))
 
-            pls = PLS(n_components=self.lv_dimensions[layer_index], solver=self.pls_solver)
+            pls = PLS(
+                n_components=self.lv_dimensions[layer_index], solver=self.pls_solver
+            )
             pls.fit(X, Y)
             self.pls_funcs.append(pls)
 
@@ -225,7 +238,7 @@ class DeepPLS(object):
 
         return Y_pred
 
-    def transform(self, test_X):
+    def transform(self, test_X, test_Y=None):
         for layer_index in range(self.n_layers):
             if self.use_nonlinear_mapping:
                 test_X_backup = test_X.clone()
@@ -236,5 +249,5 @@ class DeepPLS(object):
                     test_X = th.hstack((lv1_previous_layer, test_X))
 
             if layer_index + 1 == self.n_layers:
-                return test_X
-            test_X = self.pls_funcs[layer_index].transform(test_X)
+                return test_X, test_Y
+            test_X, test_Y = self.pls_funcs[layer_index].transform(test_X, test_Y)
