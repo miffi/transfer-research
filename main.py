@@ -79,23 +79,42 @@ def main():
     # np.random.seed(0)
 
     loader = DataLoader("AEEEM")
-    [(name_X, (X_data, X_classes)), (name_Y, (Y_data, Y_classes))] = (
-        loader.get_random_datasets()
-    )
 
-    dpls = DeepPLS(
-        lv_dimensions=[30, 5],
-        pls_solver="iter",
-        use_nonlinear_mapping=False,
-        mapping_dimensions=[],
-        nys_gamma_values=[],
-        stack_previous_lv1=False,
-    )
-    pls = PLS(35, solver="iter")
+    datas = list(loader.get_datasets())
+    for i in range(len(datas)):
+        for j in range(len(datas)):
+            if i == j:
+                continue
 
-    print(f"X = {name_X}, Y = {name_Y}")
-    print(f"DPLS = {run_transfer(dpls, X_data, Y_data, X_classes, Y_classes)}")
-    print(f"PLS = {run_transfer(pls, X_data, Y_data, X_classes, Y_classes)}")
+            (name_X, (X_data, X_classes)), (name_Y, (Y_data, Y_classes)) = (
+                datas[i],
+                datas[j],
+            )
+
+            gdpls = DeepPLS(
+                lv_dimensions=[20, 5],
+                pls_solver="iter",
+                use_nonlinear_mapping=True,
+                mapping_dimensions=[50, 50],
+                nys_gamma_values=[0.014, 0.2],
+                stack_previous_lv1=True,
+            )
+            dpls = DeepPLS(
+                lv_dimensions=[20, 5],
+                pls_solver="iter",
+                use_nonlinear_mapping=False,
+                mapping_dimensions=[],
+                nys_gamma_values=[],
+                stack_previous_lv1=False,
+            )
+            pls = PLS(5, solver="iter")
+
+            print(f"X = {name_X}, Y = {name_Y}")
+            print(
+                f"GDPLS = {run_transfer(gdpls, X_data, Y_data, X_classes, Y_classes)}"
+            )
+            print(f"DPLS = {run_transfer(dpls, X_data, Y_data, X_classes, Y_classes)}")
+            print(f"PLS  = {run_transfer(pls, X_data, Y_data, X_classes, Y_classes)}")
 
 
 if __name__ == "__main__":
