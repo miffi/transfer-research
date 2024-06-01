@@ -20,7 +20,7 @@ LoaderFunc: typing.TypeAlias = typing.Callable[
 
 def load_excel_dataset(file, class_name: str) -> DataSet:
     df = pd.read_excel(file)
-    y = th.unsqueeze(th.tensor(df[class_name], dtype=th.float32), dim=1)
+    y = th.tensor(df[class_name], dtype=th.float32)
     X = th.tensor(df.drop([class_name], axis=1).to_numpy(), dtype=th.float32)
     return (X, y)
 
