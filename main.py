@@ -98,10 +98,11 @@ def main():
         help="The dataset to run the program on.",
         required=True,
     )
-
+    parser.add_argument("-s", "--seed", type=int, help="Set the random seed to a value")
     args = parser.parse_args()
 
-    np.random.seed(0)
+    if args.seed is not None:
+        np.random.seed(args.seed)
 
     loader = DataLoader(args.dataset)
 
