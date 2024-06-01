@@ -91,14 +91,6 @@ def main():
                 datas[j],
             )
 
-            gdpls = DeepPLS(
-                lv_dimensions=[20, 5],
-                pls_solver="iter",
-                use_nonlinear_mapping=True,
-                mapping_dimensions=[50, 50],
-                nys_gamma_values=[0.014, 0.2],
-                stack_previous_lv1=True,
-            )
             dpls = DeepPLS(
                 lv_dimensions=[20, 5],
                 pls_solver="iter",
@@ -110,9 +102,6 @@ def main():
             pls = PLS(5, solver="iter")
 
             print(f"X = {name_X}, Y = {name_Y}")
-            print(
-                f"GDPLS = {run_transfer(gdpls, X_data, Y_data, X_classes, Y_classes)}"
-            )
             print(f"DPLS = {run_transfer(dpls, X_data, Y_data, X_classes, Y_classes)}")
             print(f"PLS  = {run_transfer(pls, X_data, Y_data, X_classes, Y_classes)}")
 
