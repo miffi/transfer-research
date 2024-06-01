@@ -5,6 +5,7 @@ import torch as th
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score, roc_auc_score
 from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 
 from datasets import DataLoader
@@ -63,17 +64,14 @@ def run_transfer(model, X_data, Y_data, X_classes, Y_classes) -> dict[str, float
 
     :return Various scores of the model in a dictionary.
     """
-    scaler = StandardScaler()
-    X_data = th.tensor(scaler.fit_transform(X_data), dtype=th.float32)
-    Y_data = th.tensor(scaler.transform(Y_data), dtype=th.float32)
 
     transfer = Transfer(model)
     X_fit, Y_fit = transfer.fit_transform(X_data, Y_data)
 
-    logi = LogisticRegression()
-    logi.fit(X_fit, X_classes)
+    knn = KNeighborsClassifier(n_neighbors=2)
+    knn.fit(X_fit, X_classes)
 
-    Y_classes_pred = logi.predict(Y_fit)
+    Y_classes_pred = knn.predict(Y_fit)
     return score(y_true=Y_classes, y_pred=Y_classes_pred)
 
 
