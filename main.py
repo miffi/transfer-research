@@ -1,3 +1,5 @@
+import argparse
+
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
@@ -76,9 +78,32 @@ def run_transfer(model, X_data, Y_data, X_classes, Y_classes) -> dict[str, float
 
 
 def main():
-    # np.random.seed(0)
+    parser = argparse.ArgumentParser(
+        prog="transfer.py",
+        description="Runner for the transfer learning models.",
+    )
+    parser.add_argument(
+        "--dataset",
+        choices=[
+            "AEEEM",
+            "NASA",
+            "RELINK",
+            "SOFTLAB",
+            "20news_sum",
+            "OfficeCaltech",
+            "mnist_usps",
+            "Reuters",
+            "COL20",
+        ],
+        help="The dataset to run the program on.",
+        required=True,
+    )
 
-    loader = DataLoader("AEEEM")
+    args = parser.parse_args()
+
+    np.random.seed(0)
+
+    loader = DataLoader(args.dataset)
 
     datas = list(loader.get_datasets())
     for i in range(len(datas)):
