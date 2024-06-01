@@ -31,12 +31,57 @@ relink = lambda file: load_excel_dataset(file, "isDefective")
 softlab = lambda file: load_excel_dataset(file, "defects")
 
 
+def load_matlab(file):
+    data = loadmat(file)
+    print(data)
+    print(
+        data["X_src"].shape,
+        data["X_tar"].shape,
+        data["Y_src"].shape,
+        data["Y_tar"].shape,
+    )
+    exit()
+
+
+def caltech_and_amazon(file):
+    data = loadmat(file)
+    return (
+        th.tensor(data["fts"], dtype=th.float32),
+        th.tensor(data["labels"], dtype=th.float32).ravel(),
+    )
+
+
+def image(file):
+    data = loadmat(file)
+
+    X = np.vstack([data["X_src"].T, data["X_tar"].T])
+    y = np.vstack([data["Y_src"], data["Y_tar"]]).ravel()
+    return th.tensor(X, dtype=th.float32), th.tensor(y, dtype=th.float32)
+
+
+def text(file):
+    data = loadmat(file)
+
+    print(data["Xs"].shape, data["Xt"].shape, data["Ys"].shape, data["Yt"].shape)
+
+    X = np.vstack([data["Xs"].todense().T, data["Xt"].todense().T])
+    y = np.vstack([data["Ys"].toarray(), data["Yt"].toarray()]).ravel()
+    print(X.shape, y.shape)
+    return th.tensor(X, dtype=th.float32), th.tensor(y, dtype=th.float32)
+
+
 class DataLoader:
     _loaders: dict[str, LoaderFunc] = {
+        "20news_sum": text,  # HUGE
         "AEEEM": aeeem,
+        "COL20": image,
         "NASA": nasa,
+        "OfficeCaltech": caltech_and_amazon,
         "RELINK": relink,
+        "Reuters": text,  # doesn't have same features
         "SOFTLAB": softlab,
+        "amazon_review_400": caltech_and_amazon,
+        "mnist_usps": image,
     }
 
     def __init__(self, directory: str):
@@ -54,3 +99,9 @@ class DataLoader:
             np.array(list(self.directory.glob("*"))), 2, replace=False
         )
         return ((file.name, self._load(file)) for file in files)
+
+    def get_datasets(self) -> typing.Iterable[tuple[str, DataSet]]:
+        return (
+            (file.name, self._load(file))
+            for file in np.array(list(self.directory.glob("*")))
+        )

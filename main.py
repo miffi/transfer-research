@@ -25,8 +25,10 @@ def score(
     :returns A dict with the keys "f1" and "roc_auc" with their values set to the corresponding calculations between the parameters.
     """
     return {
-        "f1": f1_score(y_true, y_pred),
-        "roc_auc": roc_auc_score(y_true, y_pred),
+        "f1_micro": f1_score(y_true, y_pred, average="micro"),
+        "f1_macro": f1_score(y_true, y_pred, average="macro"),
+        # "roc_auc_ovo": roc_auc_score(y_true, y_pred, multi_class="ovo"),
+        # "roc_auc_ovr": roc_auc_score(y_true, y_pred, multi_class="ovr"),
     }
 
 
@@ -70,7 +72,9 @@ def run_transfer(model, X_data, Y_data, X_classes, Y_classes) -> dict[str, float
     transfer = Transfer(model)
     X_fit, Y_fit = transfer.fit_transform(X_data, Y_data)
 
-    knn = KNeighborsClassifier(n_neighbors=2)
+    num_classes = len(np.unique(X_classes))
+
+    knn = KNeighborsClassifier(n_neighbors=num_classes)
     knn.fit(X_fit, X_classes)
 
     Y_classes_pred = knn.predict(Y_fit)
@@ -85,15 +89,16 @@ def main():
     parser.add_argument(
         "--dataset",
         choices=[
-            "AEEEM",
-            "NASA",
-            "RELINK",
-            "SOFTLAB",
             "20news_sum",
-            "OfficeCaltech",
-            "mnist_usps",
-            "Reuters",
+            "AEEEM",
             "COL20",
+            "NASA",
+            "OfficeCaltech",
+            "RELINK",
+            "Reuters",
+            "SOFTLAB",
+            "amazon_review_400",
+            "mnist_usps",
         ],
         help="The dataset to run the program on.",
         required=True,
