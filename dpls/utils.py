@@ -35,7 +35,7 @@ def _get_first_singular_vectors_power_method(X, Y, max_iter=500, tol=1e-06):
         x_weights = th.matmul(X.T, y_score) / th.matmul(y_score, y_score)
         x_weights /= th.sqrt(th.matmul(x_weights, x_weights)) + eps
         x_score = th.matmul(X, x_weights)
-        y_weights = th.matmul(Y.T, x_score) / th.matmul(x_score.T, x_score)
+        y_weights = th.matmul(Y.T, x_score) / th.matmul(x_score, x_score)
         y_score = th.matmul(Y, y_weights) / (th.matmul(y_weights, y_weights) + eps)
         x_weights_diff = x_weights - x_weights_old
         if th.matmul(x_weights_diff, x_weights_diff) < tol or Y.shape[1] == 1:
