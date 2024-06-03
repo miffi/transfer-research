@@ -12,6 +12,7 @@ from sklearn.preprocessing import StandardScaler
 
 from datasets import DataLoader
 from dpls.models import PLS, DeepPLS
+from transfer_pls import TransferGDPLS
 
 
 def score(
@@ -25,10 +26,8 @@ def score(
     :returns A dict with the keys "f1" and "roc_auc" with their values set to the corresponding calculations between the parameters.
     """
     return {
-        "f1_micro": f1_score(y_true, y_pred, average="micro"),
-        "f1_macro": f1_score(y_true, y_pred, average="macro"),
-        # "roc_auc_ovo": roc_auc_score(y_true, y_pred, multi_class="ovo"),
-        # "roc_auc_ovr": roc_auc_score(y_true, y_pred, multi_class="ovr"),
+        "f1": f1_score(y_true, y_pred),
+        "roc_auc": roc_auc_score(y_true, y_pred),
     }
 
 
@@ -86,32 +85,18 @@ def main():
         prog="transfer.py",
         description="Runner for the transfer learning models.",
     )
-    parser.add_argument(
-        "--dataset",
-        choices=[
-            "20news_sum",
-            "AEEEM",
-            "COL20",
-            "NASA",
-            "OfficeCaltech",
-            "RELINK",
-            "Reuters",
-            "SOFTLAB",
-            "amazon_review_400",
-            "mnist_usps",
-        ],
-        help="The dataset to run the program on.",
-        required=True,
-    )
     parser.add_argument("-s", "--seed", type=int, help="Set the random seed to a value")
     args = parser.parse_args()
-
     if args.seed is not None:
         np.random.seed(args.seed)
 
-    loader = DataLoader(args.dataset)
+    loader = DataLoader("AEEEM")
 
     datas = list(loader.get_datasets())
+
+    lv_dimensions = [30, 40]
+    nys_gamma_values = [0.01, 0.11]
+    mapping_dimensions = [50, 50]
     for i in range(len(datas)):
         for j in range(len(datas)):
             if i == j:
@@ -123,18 +108,28 @@ def main():
             )
 
             dpls = DeepPLS(
-                lv_dimensions=[20, 5],
+                lv_dimensions=lv_dimensions,
                 pls_solver="iter",
                 use_nonlinear_mapping=False,
                 mapping_dimensions=[],
                 nys_gamma_values=[],
                 stack_previous_lv1=False,
             )
-            pls = PLS(5, solver="iter")
+            pls = PLS(n_components=lv_dimensions[-1], solver="iter")
+            gdpls = TransferGDPLS(
+                lv_dimensions=lv_dimensions,
+                pls_solver="iter",
+                mapping_dimensions=mapping_dimensions,
+                nys_gamma_values=nys_gamma_values,
+                stack_previous_lv1=True,
+            )
 
             print(f"X = {name_X}, Y = {name_Y}")
-            print(f"DPLS = {run_transfer(dpls, X_data, Y_data, X_classes, Y_classes)}")
             print(f"PLS  = {run_transfer(pls, X_data, Y_data, X_classes, Y_classes)}")
+            print(f"DPLS = {run_transfer(dpls, X_data, Y_data, X_classes, Y_classes)}")
+            print(
+                f"GDPLS = {run_transfer(gdpls, X_data, Y_data, X_classes, Y_classes)}"
+            )
 
 
 if __name__ == "__main__":
