@@ -1,0 +1,40 @@
+[project]
+name = "research"
+version = "0.1.0"
+description = "Add your description here"
+authors = [
+    { name = "Miffi", email = "miffi@decadent.rest" }
+]
+dependencies = [
+    "matplotlib>=3.9.1",
+    "pandas>=2.2.2",
+    "pyqt6>=6.7.1",
+    "pandas-stubs>=2.2.2.240603",
+    "numpy>=2.0.1",
+    "tikzplotlib>=0.10.1",
+    "torch>=2.4.0",
+    "scikit-learn>=1.5.1",
+    "openpyxl>=3.1.5",
+]
+readme = "README.md"
+requires-python = ">= 3.8"
+
+[project.scripts]
+"plots" = "plots:main"
+"model" = "model:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = [
+    "mypy>=1.11.1",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/plots", "src/model"]
